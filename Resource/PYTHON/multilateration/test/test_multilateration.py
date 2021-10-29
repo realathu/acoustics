@@ -1,11 +1,8 @@
 
-
-
-
 import numpy as np
 import math
 import multilateration.parameters as param
-import multilateration.multilateration as mult
+import multilateration as mult
 
 
 """
@@ -47,18 +44,24 @@ import multilateration.multilateration as mult
 """
 #Test-functions for acoustic trilateration
 
-def calculate_toa_array(lag_array: np.array, bool_valid_parameters: np.unit8):  
+bool_valid_parameters = 0
+
+def valid_number_of_hydrophones(): 
+    return (param.HydrophoneDetailes.NUM_HYDROPHONES < 3)
+        
+
+
+
+def calculate_toa_array():  
     """
     Arg: 
     in the orginal code is was written: 
         uint32_t lag_array[NUM_HYDROPHONES],
-        uint8_t& bool_valid_parameters 
-    """
-    #Fail-checks
+        uint8_t& bool_valid_parameters - this one is removed
 
-    if(not param.TestParameters.CURR_TESTING_BOOL or param.HydrophoneDetailes.NUM_HYDROPHONES < 3):
-        bool_valid_parameters = 0
-        return
+    return: 
+    lag_array
+    """  
 
     #Calculating the distance between the sound-source and the hydrophones
     dist_src_port = float(math.sqrt(math.pow(param.TestParameters.SOURCE_POS_X - param.HydrophoneDetails.PORT_HYD_X, 2) + 
@@ -76,21 +79,23 @@ def calculate_toa_array(lag_array: np.array, bool_valid_parameters: np.unit8):
     
     #Since the TOA uses lag (direct measuremend), these values are uint32_t 
    
-    lag_port = np.unit32(param.DSPConstants.SAMPLE_FREQUENCY * (dist_src_port / param.PhysicalConstants.SOUND_SPEED))
-    lag_starboard = np.uint32(param.DSPConstants.SAMPLE_FREQUENCY * (dist_src_starboard / param.PhysicalConstants.SOUND_SPEED))
-    lag_stern = np.uint32(param.DSPConstants.SAMPLE_FREQUENCY * (dist_src_stern / param.PhysicalConstants.SOUND_SPEED))
+    lag_port = np.uint32((dist_src_port / param.PhysicalConstants.SOUND_SPEED)) #param.DSPConstants.SAMPLE_FREQUENCY * 
+    lag_starboard = np.uint32((dist_src_starboard / param.PhysicalConstants.SOUND_SPEED)) #param.DSPConstants.SAMPLE_FREQUENCY * 
+    lag_stern = np.uint32((dist_src_stern / param.PhysicalConstants.SOUND_SPEED)) #param.DSPConstants.SAMPLE_FREQUENCY * 
 
   
     #Setting the values into the array
-   
-    lag_array[0] = lag_port
-    lag_array[1] = lag_starboard
-    lag_array[2] = lag_stern
 
-    bool_valid_parameters = 1
+    lag_array = []
+   
+    lag_array.append(lag_port)
+    lag_array.append(lag_starboard)
+    lag_array.append(lag_stern)
+
+    return lag_array
 
 """
-   * @brief Function that checks if the fictional sound-source position is  within 
+   * @brief Function that checks if the simulated sound-source position is  within 
    * @p MARGIN_POS_ESTIMATE distance from the estimated position
    * 
    * Writes the distance estimated and the actual distance to the terminal
@@ -104,27 +109,17 @@ def test_trilateration_algorithm():
     Writing out an error-msg if the parameters are wrong
     """
 
-    lag_array = [] #uint32_t lag_array[NUM_HYDROPHONES];
-    bool_valid_parameters = 1
-
-    calculate_toa_array(lag_array, bool_valid_parameters)
-    if(bool_valid_parameters):
-        print("\nAt least one parameter in parameter.h is invalid")
+    lag_array = calculate_toa_array()
+    
+    if(not valid_number_of_hydrophones):
+        print("\nAt least one parameter is invalid")
         return
 
-    #Initializing the system matrices
-    
-    A_matrix = mult.initialize_A_matrix() #Matrix_2_3_f
-    B_vector = mult.initialize_B_vector() #Vector_2_1_f 
+   
 
     #Initializing the estimate for x-pos and y-pos
-    #float32_t x_pos_es, y_pos_es;
 
-    x_pos_es, y_pos_es = mult.trilaterate_pinger_position(A_matrix, B_vector, lag_array)
-
-    #tested in test_mulitatertaion instead
-    #if(sjekk == 0):
-     #   print("\nA-matrix is not invertible")
+    x_pos_es, y_pos_es = mult.trilaterate_pinger_position (lag_array)
 
     """
     * Calculating the distance between the estimated position and the 
@@ -135,9 +130,9 @@ def test_trilateration_algorithm():
             math.pow(x_pos_es - param.TestParameters.SOURCE_POS_X, 2) +
             math.pow(y_pos_es - param.TestParameters.SOURCE_POS_Y, 2)))
 
-    print("\nThe estimated pinger position is at (x,y) = (%f, %f)", x_pos_es, y_pos_es)
-    print("\nThe actual pinger position is at (x,y) = (%f, %f)", param.TestParameters.SOURCE_POS_X, param.TestParameters.SOURCE_POS_Y)
-    print("\nThe difference between the actual position and the estimated position is %f m", distance_diff)
+    print("\nThe estimated pinger position is at (x,y) = (", x_pos_es, ", ",y_pos_es, ")")
+    print("\nThe actual pinger position is at (x,y) = (", param.TestParameters.SOURCE_POS_X, ", ", param.TestParameters.SOURCE_POS_Y, ")")
+    print("\nThe difference between the actual position and the estimated position is", distance_diff, " m.")
     
 
 

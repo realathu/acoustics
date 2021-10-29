@@ -134,7 +134,7 @@ class TestParameters:
                                                     # Testing:     1
     
     SOURCE_POS_X: float = 10.0                      # x - position of sound-source
-    SOURCE_POS_y: float = 2.0                       # y - position of sound-source
+    SOURCE_POS_Y: float = 2.0                       # y - position of sound-source
     SOURCE_POS_Z: float = 0.0                        # z - position of sound-source
 
 

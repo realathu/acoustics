@@ -1,9 +1,10 @@
 #include "trilateration.h"
 
 import math
-import parameters as param
+
 import numpy as np
 
+import multilateration.parameters as param
 
 
 #Initializing the variables maximum_time_diff and max_hydrophone_distance.
@@ -13,7 +14,6 @@ import numpy as np
 
 max_hydrophone_distance = -1.0
 max_time_diff = -1.0
-
 
 #Functions for initializing 
 
@@ -99,7 +99,7 @@ def check_valid_signals(p_lag_array: np.array, bool_time_error: np.uint32):
 
 #Functions for trilateration based on TDOA 
 
-def trilaterate_pinger_position(A,B,p_lag_array): #obs: originaly x_estimate og y_estimate were taken in as arguments
+def trilaterate_pinger_position(p_lag_array): #obs: originaly x_estimate og y_estimate were taken in as arguments
         """
         arg:
         A is a Matrix_2_3_f
@@ -108,37 +108,23 @@ def trilaterate_pinger_position(A,B,p_lag_array): #obs: originaly x_estimate og 
         x_estimate and y_estimate is a float32
 
         returns:
-        unit8
+        
         """
-
-        #Recovering the lags from the array 
-        p_lag_port_starboard = p_lag_array[0]
-        p_lag_port_stern = p_lag_array[1]
-        p_lag_starboard_stern = p_lag_array[2]
-
         #Calculating TDOA and creating an array to hold the data 
-        TDOA_port_starboard = float(
-                param.DSPConstants.SAMPLE_TIME * param.PhysicalConstants.SOUND_SPEED * (p_lag_port_starboard))
-        TDOA_port_stern =float(
-                param.DSPConstants.SAMPLE_TIME * param.PhysicalConstants.SOUND_SPEED * (p_lag_port_stern))
-        TDOA_starboard_stern =float(
-                param.DSPConstants.SAMPLE_TIME * param.PhysicalConstants.SOUND_SPEED * (p_lag_starboard_stern))
+        TDOA_port_starboard = abs(p_lag_array[0] -p_lag_array[1])
+        TDOA_port_stern =abs(p_lag_array[0] -p_lag_array[2])
+        TDOA_starboard_stern = abs(p_lag_array[1] -p_lag_array[2])
 
         TDOA_array= [TDOA_port_starboard, TDOA_port_stern, TDOA_starboard_stern]
         
         #Calculating the matrices 
-        calculate_tdoa_matrices(TDOA_array, A, B)
+        A, B = calculate_tdoa_matrices(TDOA_array)
 
         #Calculating the transpose
-        A_T = A.transpose() #Matrix_2_3_f 
-
-        #will test in test_multilateration instead
-        # Checking if A * A_T is invertible. Return 0 if not 
-        #if(not((A_T * A).determinant())):
-        #       return 0, 0, 0
+        A_T = np.transpose(A) #Matrix_2_3_f 
 
         #Calculating the solution-vector 
-        solution_vec = (A_T * A).inverse() * A_T * B #Vector_2_1_f 
+        solution_vec = np.dot(np.linalg.inv(np.dot(A_T,A)), np.dot(A_T,B)) #(A_T * A).invers() * A_T * B
 
         #Extracting the values 
         x_estimate = solution_vec.coeff(0)
@@ -148,7 +134,7 @@ def trilaterate_pinger_position(A,B,p_lag_array): #obs: originaly x_estimate og 
 
 
 
-def calculate_tdoa_matrices(TDOA_array,A,B):
+def calculate_tdoa_matrices(TDOA_array):
         """
         Arg: 
         TDOA_array has len NUM_HYDROPHONES with type float32_t
@@ -183,7 +169,7 @@ def calculate_tdoa_matrices(TDOA_array,A,B):
         #Extracting the data from the array 
         TDOA_port_starboard = TDOA_array[0] #float32
         TDOA_port_stern = TDOA_array[1] #float32
-        TDOA_starboard_stern = TDOA_array[2] #float32
+        #TDOA_starboard_stern = TDOA_array[2]  - not used
 
         #Using TDOA to calculate the distances 
         d_01 = param.PhysicalConstants.SOUND_SPEED * TDOA_port_starboard #float32
@@ -211,3 +197,5 @@ def calculate_tdoa_matrices(TDOA_array,A,B):
 
         #Setting B 
         B = [b1, b2]
+
+        return A, B
