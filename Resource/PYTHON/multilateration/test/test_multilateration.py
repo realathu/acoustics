@@ -133,8 +133,8 @@ def test_trilateration_algorithm():
             math.pow(y_pos_es - param.TestParameters.SOURCE_POS_Y, 2)))
 
     print(f"\nThe estimated pinger position is at (x,y) = ({x_pos_es}, {y_pos_es})")
-    print(f"\nThe actual pinger position is at (x,y) = ({param.TestParameters.SOURCE_POS_X}, {param.TestParameters.SOURCE_POS_Y)})")
-    print(f"\nThe difference between the actual position and the estimated position is {distance_diff}} m")
+    print(f"\nThe actual pinger position is at (x,y) = ({param.TestParameters.SOURCE_POS_X}, {param.TestParameters.SOURCE_POS_Y})")
+    print(f"\nThe difference between the actual position and the estimated position is {distance_diff} m")
     
 
 
